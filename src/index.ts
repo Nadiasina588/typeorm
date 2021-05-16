@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import {createConnection} from "typeorm";
-import express, { Request, Response } from 'express'
+import express, { Request, Response } from 'express';
+import { validate } from 'class-validator'
 import {User} from "./entity/User";
 import { Post } from "./entity/Post";
 const app = express()
@@ -11,6 +12,8 @@ app.post('/users', async (req: Request, res: Response) => {
     const { name, email, role } = req.body
     try {
         const user = User.create({ name, email, role })
+        const errors = await validate(user)
+        if(errors.length > 0) throw errors
 
         await user.save()
 
@@ -25,7 +28,7 @@ app.post('/users', async (req: Request, res: Response) => {
 // Read Data
 app.get('/users', async (_:Request, res: Response ) => {
     try{
-        const users = await User.find()
+        const users = await User.find({ relations: ['posts'] })
         return res.json(users)
     }
     catch (err) {
@@ -82,13 +85,11 @@ app.get('/users/:uuid', async (req: Request, res: Response) => {
 
 
 // Crete a Post
-app.post('/post', async ( req: Request, res: Response ) => {
+app.post('/posts', async ( req: Request, res: Response ) => {
     const { userUuid, title, body } = req.body
     try{
-        // const user = await Post.findOneOrFail({ uuid: userUuid })
-        const post = Post.create({ title, body })
-
-        
+        const user = await User.findOneOrFail({ uuid: userUuid })
+        const post = new Post({ title, body, user })
         await post.save()
         return res.json(post)
 
@@ -97,6 +98,18 @@ app.post('/post', async ( req: Request, res: Response ) => {
         return res.status(500).json({ error: 'Something went wrong '})
     }
 })
+
+// Read posts 
+app.get('/posts', async (req: Request, res:Response ) => {
+    try{
+        const posts = await Post.find({ relations: ['user'] })
+        return res.json(posts)
+    } catch (err){
+        console.log(err)
+        return res.status(500).json({ error: 'Something went wrong'})
+    }
+})
+
 
 createConnection().then(async connection => {
     app.listen(5000, () => console.log('Server run on Port 5000'))

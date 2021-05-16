@@ -5,7 +5,7 @@
    "username": "root",
    "password": "Aslandonance1313",
    "database": "etudetypeorm",
-   "synchronize": true,
+   "synchronize": false,
    "logging": true,
    "entities": [
       "src/entity/**/*.ts"

@@ -2,6 +2,7 @@ import "reflect-metadata";
 import {createConnection} from "typeorm";
 import express, { Request, Response } from 'express'
 import {User} from "./entity/User";
+import { Post } from "./entity/Post";
 const app = express()
 app.use(express.json())
 
@@ -33,6 +34,7 @@ app.get('/users', async (_:Request, res: Response ) => {
     }
 })
 
+/* update data */
 app.put('/users/:uuid', async(req: Request, res: Response) => {
     const uuid = req.params.uuid
     const { name, email, role } = req.body
@@ -50,31 +52,55 @@ app.put('/users/:uuid', async(req: Request, res: Response) => {
         return res.status(500).json({ error: 'Something went wrong '})
     }
 })
+
+/* delete data */
+
+app.delete('/users/:uuid', async(req: Request, res: Response) => {
+    const uuid = req.params.uuid
+    try{
+        const user = await User.findOneOrFail({ uuid })
+        await user.remove()
+        return res.status(204).json({ message: 'User deleted successfully '})
+
+    }catch (err){
+        console.log(err)
+        return res.status(500).json({ error: 'Something went wrong' })
+    }
+})
+// Find data
+app.get('/users/:uuid', async (req: Request, res: Response) => {
+    const uuid = req.params.uuid
+    try {
+        const user = await User.findOneOrFail({ uuid })
+        return res.json(user)
+    }
+    catch (err) {
+        console.log(err)
+        return res.status(404).json({ user: 'User not found '})
+    }
+})
+
+
+// Crete a Post
+app.post('/post', async ( req: Request, res: Response ) => {
+    const { userUuid, title, body } = req.body
+    try{
+        // const user = await Post.findOneOrFail({ uuid: userUuid })
+        const post = Post.create({ title, body })
+
+        
+        await post.save()
+        return res.json(post)
+
+    } catch (err){
+        console.log(err)
+        return res.status(500).json({ error: 'Something went wrong '})
+    }
+})
+
 createConnection().then(async connection => {
     app.listen(5000, () => console.log('Server run on Port 5000'))
 
-    // console.log("Inserting a new user into the database...");
-    // const user = new User();
-    // user.firstName = "Timber";
-    // user.lastName = "Saw";
-    // user.age = 25;
-    // await connection.manager.save(user);
-    // console.log("Saved a new user with id: " + user.id);
-
-    // console.log("Loading users from the database...");
-    // const users = await connection.manager.find(User);
-    // console.log("Loaded users: ", users);
-
-    // console.log("Here you can setup and run express/koa/any other framework.");
- 
-    /*  const user = new User()
-
-    user.name = "Nadiasina Nico"
-    user.email = "nadiasinanicodev@gmail.com"
-    user.role = "admin"
     
-    await user.save()
-    console.log('User created!!!!')
-    */
 
 }).catch(error => console.log(error));
